@@ -15,6 +15,8 @@ type exp =
            Var "x") --> 
      if x<4 then 3 else x *)
   | LetExp of id * exp * exp (* let expression *)
+  | FunExp of id * exp (* function expression *)
+  | AppExp of exp * exp (* function application expression *)
 
 type program =
     Exp of exp
