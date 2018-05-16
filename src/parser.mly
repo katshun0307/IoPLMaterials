@@ -41,6 +41,7 @@ LTExpr : (* less than expression *)
 
 PExpr : (* addition *)
     l=PExpr PLUS r=MExpr { BinOp (Plus, l, r) }
+  (* | LPAREN PLUS RPAREN l=PExpr r=PExpr { BinOp (Plus, l, r) } *)
   | e=MExpr { e }
 
 MExpr : (* multiplication *)
@@ -52,8 +53,12 @@ AppExpr : (* function application *)
   | e=AExpr { e }
 
 (* function expression *)
-FUNExpr : (* function *)
-    FUN x=ID RARROW e=Expr { FunExp (x, e) }
+FUNExpr : (* fun x1 ... -> expr *)
+    FUN b=FunBottomExpr { b }
+
+FunBottomExpr : (* ....xn-1 xn -> expr *)
+    x=ID RARROW e=Expr { FunExp(x, e) }
+  | x=ID b=FunBottomExpr { FunExp (x, b) }
 
 (* logical expressions *)
 ORExpr : (* or *)
