@@ -9,6 +9,7 @@ let reservedWords = [
   ("let", Parser.LET);
   ("in", Parser.IN);
   ("fun", Parser.FUN);
+  ("dfun", Parser.DFUN);
 ] 
 }
 
@@ -16,7 +17,8 @@ rule main = parse
   (* ignore spacing and newline characters *)
   [' ' '\009' '\012' '\n']+     { main lexbuf }
 
-(* | "(*" { comment lexbuf } *)
+ | "(*" { comment 1 lexbuf } 
+
 
 | "-"? ['0'-'9']+
     { Parser.INTV (int_of_string (Lexing.lexeme lexbuf)) }
@@ -39,8 +41,8 @@ rule main = parse
       _ -> Parser.ID id
      }
 | eof { exit 0 }
-(*
-and rule comment = parse
-"(*" { comment lexbuf }
-| "*)" { main lexbuf }
-*)
+
+and comment i = parse
+| "*)" { if i = 1 then main lexbuf else comment (i-1) lexbuf } 
+| "(*" { comment (i+1) lexbuf }
+| _ {comment i lexbuf}
