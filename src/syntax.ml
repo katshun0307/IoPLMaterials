@@ -15,9 +15,14 @@ type exp =
            Var "x") --> 
      if x<4 then 3 else x *)
   | LetExp of id * exp * exp (* let expression *)
-  | FunExp of id * exp (* function expression *)
+  | FunExp of id * exp (* static function expression *)
+  | DFunExp of id * exp (* dynamic function expression *)
   | AppExp of exp * exp (* function application expression *)
+(* | LetRecExp of id * id * exp * exp*) (* recursive function expression *)
+(* let rec id =
+   fun id -> exp in exp *)
 
 type program =
     Exp of exp
   | Decl of id * exp
+  (* | RecDecl of id * id * exp *)

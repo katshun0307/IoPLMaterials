@@ -9,3 +9,5 @@ lexer.ml
 ._ncdi
 src/miniml
 src/parser.automaton
+.vscode/
+parser.conflicts

@@ -8,7 +8,8 @@ open Syntax
 type exval =
   | IntV of int
   | BoolV of bool
-  | ProcV of id * exp * dnval Environment.t
+  | ProcV of id * exp * dnval Environment.t 
+  | DProcV of id * exp
 and dnval = exval
 
 exception Error of string
@@ -19,7 +20,8 @@ let err s = raise (Error s)
 let rec string_of_exval = function
     IntV i -> string_of_int i
   | BoolV b -> string_of_bool b
-  | ProcV _ -> "some function"
+  | ProcV _ -> "some static function"
+  | DProcV _ -> "some dynamic function"
 
 let pp_val v = print_string (string_of_exval v)
 
@@ -62,7 +64,16 @@ let rec eval_exp env = function
      | ProcV (id, body, env') -> 
        let newenv = Environment.extend id arg env' in
        eval_exp newenv body
+     | DProcV(id, body) -> eval_exp env body
      | _ -> err ("Non function value is applied"))
+  | DFunExp (id, exp) -> DProcV(id, exp)
+
+(* | LetRecExp (id, para, exp1, exp2) ->
+   (* make reference to dummy environment *)
+   let dummyenv = ref Environment.empty in
+   let newenv = Environment.extend id (ProcV(para, exp1, dummyenv)) env in
+   dummyenv := newenv;
+   eval_exp newenv exp2 *)
 
 let eval_decl env = function
     Exp e -> let v = eval_exp env e in ("-", env, v)

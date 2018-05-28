@@ -5,8 +5,8 @@ open Syntax
 %token LPAREN RPAREN SEMISEMI
 %token PLUS MULT LT AND OR
 %token IF THEN ELSE TRUE FALSE
-%token LET IN EQ COMMENT
-%token RARROW FUN
+%token LET IN EQ
+%token RARROW FUN DFUN
 
 %token <int> INTV
 %token <Syntax.id> ID
@@ -24,7 +24,8 @@ Expr :
   | e=LTExpr { e } (* less than *)
   | e=ORExpr { e } (* boolean expression *)  
   | e=LETExpr { e } (* let expression *)
-  | e=FUNExpr { e } (* function expression *)
+  | e=FUNExpr { e } (* static function expression *)
+  | e=DFUNExpr { e } (* dynamic function expression *)
 
 (* if expression *)
 IfExpr :
@@ -41,9 +42,9 @@ LTExpr : (* less than expression *)
 
 PExpr : (* addition *)
     l=PExpr PLUS r=MExpr { BinOp (Plus, l, r) }
-  (* | LPAREN PLUS RPAREN l=PExpr r=PExpr { BinOp (Plus, l, r) } *)
+  (* | LPAREN PLUS RPAREN s=PExpr t=MExpr { BinOp (Plus, s, t) } *)
   | e=MExpr { e }
-
+ 
 MExpr : (* multiplication *)
     l=MExpr MULT r=AppExpr { BinOp (Mult, l, r) }
   | e=AppExpr { e }
@@ -52,13 +53,21 @@ AppExpr : (* function application *)
     e1=AppExpr e2=AExpr { AppExp(e1, e2) }
   | e=AExpr { e }
 
-(* function expression *)
+(* static function expression *)
 FUNExpr : (* fun x1 ... -> expr *)
     FUN b=FunBottomExpr { b }
 
 FunBottomExpr : (* ....xn-1 xn -> expr *)
     x=ID RARROW e=Expr { FunExp(x, e) }
   | x=ID b=FunBottomExpr { FunExp (x, b) }
+
+(* dynamic function expression *)
+DFUNExpr : (* dfun x1 ... -> expr *)
+    DFUN b=DFunBottomExpr { b }
+
+DFunBottomExpr : (* ....xn-1 xn -> expr *)
+    x=ID RARROW e=Expr { DFunExp(x, e) }
+  | x=ID b=FunBottomExpr { DFunExp (x, b) }
 
 (* logical expressions *)
 ORExpr : (* or *)
@@ -76,5 +85,3 @@ AExpr : (* integer, boolean, variable(id), expression_with_parenthesis *)
   | FALSE  { BLit false }
   | i=ID   { Var i }
   | LPAREN e=Expr RPAREN { e }
-
-
