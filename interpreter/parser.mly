@@ -26,6 +26,7 @@ Expr :
   | e=LETExpr { e } (* let expression *)
   | e=FUNExpr { e } (* static function expression *)
   | e=DFUNExpr { e } (* dynamic function expression *)
+  | e=BinExpr { e } (* binary expressions *) 
 
 (* if expression *)
 IfExpr :
@@ -42,7 +43,6 @@ LTExpr : (* less than expression *)
 
 PExpr : (* addition *)
     l=PExpr PLUS r=MExpr { BinOp (Plus, l, r) }
-  (* | LPAREN PLUS RPAREN s=PExpr t=MExpr { BinOp (Plus, s, t) } *)
   | e=MExpr { e }
  
 MExpr : (* multiplication *)
@@ -51,6 +51,7 @@ MExpr : (* multiplication *)
 
 AppExpr : (* function application *)
     e1=AppExpr e2=AExpr { AppExp(e1, e2) }
+  | e1=BinExpr e2=AExpr { AppExp(e1, e2) }
   | e=AExpr { e }
 
 (* static function expression *)
@@ -77,6 +78,13 @@ ORExpr : (* or *)
 ANDExpr : (* and *)
     l=ANDExpr AND r=AExpr { BinOp (And, l, r) }
   | e=AExpr { e }
+
+BinExpr : (* binary expression *)
+    LPAREN PLUS RPAREN { FunExp("a", FunExp("b", BinOp (Plus, Var "a", Var "b"))) }
+  |  LPAREN MULT RPAREN { FunExp("a", FunExp("b", BinOp (Mult, Var "a", Var "b"))) }
+  |  LPAREN LT RPAREN { FunExp("a", FunExp("b", BinOp (Lt, Var "a", Var "b"))) }
+  |  LPAREN AND RPAREN { FunExp("a", FunExp("b", BinOp (And, Var "a", Var "b"))) }
+  |  LPAREN OR RPAREN { FunExp("a", FunExp("b", BinOp (Or, Var "a", Var "b"))) }
 
 (* most basic expressions *)
 AExpr : (* integer, boolean, variable(id), expression_with_parenthesis *)
