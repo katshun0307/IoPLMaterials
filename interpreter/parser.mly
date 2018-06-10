@@ -5,7 +5,7 @@ open Syntax
 %token LPAREN RPAREN SEMISEMI
 %token PLUS MULT LT AND OR
 %token IF THEN ELSE TRUE FALSE
-%token LET IN EQ
+%token LET IN EQ LETAND
 %token RARROW FUN DFUN
 
 %token <int> INTV
@@ -19,6 +19,12 @@ toplevel :
     e=Expr SEMISEMI { Exp e }
   | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) }
   | LET x=ID EQ e1=Expr l2=toplevel { DeclList(Decl(x, e1), l2) } 
+  | LET x=ID EQ e1=Expr LETAND l2=CLOSEDDECLExpr { ClosedDeclList(Decl(x, e1), l2) } 
+
+CLOSEDDECLExpr :
+  | x=ID EQ e1=Expr LETAND l2=CLOSEDDECLExpr { ClosedDeclList(Decl(x, e1), l2) }
+  | x=ID EQ e1=Expr SEMISEMI { Decl(x, e1) }
+
 
 Expr :
     e=IfExpr { e } (* if expression *)

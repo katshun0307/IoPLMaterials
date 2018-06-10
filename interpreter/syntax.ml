@@ -29,4 +29,6 @@ type program =
   | Decl of id * exp
   | DeclList of program * program
   | DeclListEnd of meta
+  | ClosedDeclList of program * program
+  | ClosedDeclListEnd of meta
   (* | RecDecl of id * id * exp *)

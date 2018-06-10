@@ -82,4 +82,25 @@ let rec eval_decl env = function
   | DeclList (l1, l2) -> (match l2 with
       | DeclListEnd _ -> eval_decl env l1
       | _ -> let (id, new_env, v) = eval_decl env l1 in eval_decl new_env l2)
-  | _ -> err ("cannot evaluate")
+  | ClosedDeclList (o_top, o_rest) ->
+    (match o_top with
+     (* o_top is always an declaration *)
+     | Decl(id_top, e_top) -> 
+       (* define loop fun *)
+       let rec loop current_env const_env expr =
+         (match expr with
+          | ClosedDeclList(top, rest) -> 
+            (match top with
+             | Decl(id, e) -> let v = eval_exp const_env e in
+               let (_, res_env, _) = loop current_env const_env rest in
+               (id, Environment.extend id v res_env, v)
+             | _ -> err("failed"))
+          | Decl(id, e) -> let v = eval_exp const_env e in 
+            (id, Environment.extend id v current_env, v)
+          | _ -> err("failed"))
+         (* define loop fun *)
+       in let v = eval_exp env e_top
+       in let (_, env_m1, _) = (loop env env o_rest)
+       in (id_top, Environment.extend id_top v env_m1, v )
+     | _ -> err("failed"))
+  | _ -> err("failed")
