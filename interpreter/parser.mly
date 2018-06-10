@@ -17,7 +17,8 @@ open Syntax
 
 toplevel :
     e=Expr SEMISEMI { Exp e }
-  | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) } 
+  | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) }
+  | LET x=ID EQ e1=Expr l2=toplevel { DeclList(Decl(x, e1), l2) } 
 
 Expr :
     e=IfExpr { e } (* if expression *)
@@ -27,6 +28,7 @@ Expr :
   | e=FUNExpr { e } (* static function expression *)
   | e=DFUNExpr { e } (* dynamic function expression *)
   | e=BinExpr { e } (* binary expressions *) 
+  (* | e=MULTDECLExpr { e } *)
 
 (* if expression *)
 IfExpr :
@@ -35,6 +37,10 @@ IfExpr :
 (* let expression *)
 LETExpr :
     LET x=ID EQ e1=Expr IN e2=Expr { LetExp(x, e1, e2) }
+
+(* MULTDECLExpr : 
+  LET x=ID EQ e1=Expr { DeclList(Decl(x, e1), DeclListEnd(End)) }
+  | LET x=ID EQ e1=Expr l2=MULTDECLExpr { DeclList(Decl(x, e1), l2) } *)
 
 (* number expressions *)
 LTExpr : (* less than expression *)

@@ -3,6 +3,8 @@ type id = string
 
 type binOp = Plus | Mult | Lt | And | Or
 
+type meta = End
+
 type exp =
   | Var of id (* Var "x" --> x *)
   | ILit of int (* ILit 3 --> 3 *)
@@ -25,4 +27,6 @@ type exp =
 type program =
     Exp of exp
   | Decl of id * exp
+  | DeclList of program * program
+  | DeclListEnd of meta
   (* | RecDecl of id * id * exp *)

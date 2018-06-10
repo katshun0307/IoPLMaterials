@@ -57,16 +57,17 @@ let rec eval_exp env = function
     let value = eval_exp env exp1 in 
     eval_exp (Environment.extend id value env) exp2
   | FunExp (id, exp) -> ProcV (id, exp, env) (* save current environment "env" inside closure *)
-  | AppExp (exp1, exp2) -> 
-    let funval = eval_exp env exp1 in
-    let arg = eval_exp env exp2 in 
-    (match funval with
-     | ProcV (id, body, env') -> 
-       let newenv = Environment.extend id arg env' in
-       eval_exp newenv body
-     | DProcV(id, body) -> eval_exp env body
-     | _ -> err ("Non function value is applied"))
+  | AppExp (exp1, exp2) -> (
+      let funval = eval_exp env exp1 in
+      let arg = eval_exp env exp2 in 
+      (match funval with
+       | ProcV (id, body, env') -> 
+         let newenv = Environment.extend id arg env' in
+         eval_exp newenv body
+       | DProcV(id, body) -> eval_exp env body
+       | _ -> err ("Non function value is applied")))
   | DFunExp (id, exp) -> DProcV(id, exp)
+  | _ -> err("not able to calculate")
 
 (* | LetRecExp (id, para, exp1, exp2) ->
    (* make reference to dummy environment *)
@@ -75,6 +76,10 @@ let rec eval_exp env = function
    dummyenv := newenv;
    eval_exp newenv exp2 *)
 
-let eval_decl env = function
+let rec eval_decl env = function
     Exp e -> let v = eval_exp env e in ("-", env, v)
   | Decl (id, e) -> let v = eval_exp env e in (id, Environment.extend id v env, v)
+  | DeclList (l1, l2) -> (match l2 with
+      | DeclListEnd _ -> eval_decl env l1
+      | _ -> let (id, new_env, v) = eval_decl env l1 in eval_decl new_env l2)
+  | _ -> err ("cannot evaluate")

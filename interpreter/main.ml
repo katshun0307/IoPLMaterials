@@ -12,8 +12,9 @@ let rec read_eval_print env =
     print_newline();
     read_eval_print newenv
   with
-    _ -> print_string("invalid arg.");
-    print_newline();
+    e -> 
+    let msg = Printexc.to_string e in
+    print_string ("there was an error: " ^ msg ^ "\n");
     read_eval_print env;;
 
 
