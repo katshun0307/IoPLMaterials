@@ -20,7 +20,7 @@ type exp =
   | FunExp of id * exp (* static function expression *)
   | DFunExp of id * exp (* dynamic function expression *)
   | AppExp of exp * exp (* function application expression *)
-(* | LetRecExp of id * id * exp * exp*) (* recursive function expression *)
+  | LetRecExp of id * id * exp * exp (* recursive function expression *)
 (* let rec id =
    fun id -> exp in exp *)
 
@@ -28,7 +28,8 @@ type program =
     Exp of exp
   | Decl of id * exp
   | DeclList of program * program
+  | ClosedDecl of id * exp
+  | ClosedLetExp of id * exp * exp
+  | ClosedDeclList of program list
   | DeclListEnd of meta
-  | ClosedDeclList of program * program
-  | ClosedDeclListEnd of meta
-  (* | RecDecl of id * id * exp *)
+  | RecDecl of id * id * exp

@@ -8,8 +8,9 @@ open Syntax
 type exval =
   | IntV of int
   | BoolV of bool
-  | ProcV of id * exp * dnval Environment.t 
+  | ProcV of id * exp * dnval Environment.t
   | DProcV of id * exp
+  | RProcV of id * exp * dnval Environment.t ref
 and dnval = exval
 
 exception Error of string
@@ -22,6 +23,7 @@ let rec string_of_exval = function
   | BoolV b -> string_of_bool b
   | ProcV _ -> "some static function"
   | DProcV _ -> "some dynamic function"
+  | RProcV _ -> "some recursive function"
 
 let pp_val v = print_string (string_of_exval v)
 
@@ -65,14 +67,14 @@ let rec eval_exp env = function
          let newenv = Environment.extend id arg env' in
          eval_exp newenv body
        | DProcV(id, body) -> eval_exp env body
-       | _ -> err ("Non function value is applied")))
+       | e -> err ("Non function value is applied")))
   | DFunExp (id, exp) -> DProcV(id, exp)
   | _ -> err("not able to calculate")
 
 (* | LetRecExp (id, para, exp1, exp2) ->
    (* make reference to dummy environment *)
    let dummyenv = ref Environment.empty in
-   let newenv = Environment.extend id (ProcV(para, exp1, dummyenv)) env in
+   let newenv = Environment.extend id (RProcV(para, exp1, dummyenv)) env in
    dummyenv := newenv;
    eval_exp newenv exp2 *)
 
@@ -82,25 +84,27 @@ let rec eval_decl env = function
   | DeclList (l1, l2) -> (match l2 with
       | DeclListEnd _ -> eval_decl env l1
       | _ -> let (id, new_env, v) = eval_decl env l1 in eval_decl new_env l2)
-  | ClosedDeclList (o_top, o_rest) ->
-    (match o_top with
-     (* o_top is always an declaration *)
-     | Decl(id_top, e_top) -> 
-       (* define loop fun *)
-       let rec loop current_env const_env expr =
-         (match expr with
-          | ClosedDeclList(top, rest) -> 
-            (match top with
-             | Decl(id, e) -> let v = eval_exp const_env e in
-               let (_, res_env, _) = loop current_env const_env rest in
-               (id, Environment.extend id v res_env, v)
-             | _ -> err("failed"))
-          | Decl(id, e) -> let v = eval_exp const_env e in 
+  | ClosedDeclList(lst) ->
+    let rec loop current_env const_env l =
+      (match l with 
+       | top :: [] -> 
+         (match top with
+          | ClosedDecl(id, e) -> let v = eval_exp const_env e  in 
             (id, Environment.extend id v current_env, v)
+          | ClosedLetExp(id, e1, e2) -> let value = eval_exp const_env e1 in 
+            let res = eval_exp (Environment.extend id value env) e2 in 
+            (id, Environment.extend id res current_env, res)
           | _ -> err("failed"))
-         (* define loop fun *)
-       in let v = eval_exp env e_top
-       in let (_, env_m1, _) = (loop env env o_rest)
-       in (id_top, Environment.extend id_top v env_m1, v )
-     | _ -> err("failed"))
+       | top :: rest -> 
+         (match top with
+          | ClosedDecl(id, e) -> let v = eval_exp const_env e  in 
+            let (_, res_env, _) = loop current_env const_env rest in
+            (id, Environment.extend id v res_env, v)
+          | ClosedLetExp(id, e1, e2) -> let value = eval_exp const_env e1 in 
+            let v = eval_exp (Environment.extend id value env) e2 in
+            let (_, res_env, _) = loop current_env const_env rest in
+            (id, Environment.extend id v res_env, v)
+          | _ -> err("failed"))
+       | [] -> err("failed")
+      ) in loop env env lst
   | _ -> err("failed")
