@@ -1,9 +1,14 @@
 (* ML interpreter / type reconstruction *)
 type id = string
 
-type binOp = Plus | Mult | Lt | And | Or
+type binOp = Plus | Mult | Lt
 
-type meta = End
+let string_of_binop = function
+  | Plus -> "Plus"
+  | Mult -> "Mult"
+  | Lt -> "Lt"
+
+type logicOp = And | Or
 
 type exp =
   | Var of id (* Var "x" --> x *)
@@ -11,13 +16,15 @@ type exp =
   | BLit of bool (* BLit true --> true *)
   | BinOp of binOp * exp * exp
   (* BinOp(Plus, ILit 4, Var "x") --> 4 + x *)
+  | LogicOp of logicOp * exp * exp 
   | IfExp of exp * exp * exp
   (* IfExp(BinOp(Lt, Var "x", ILit 4), 
            ILit 3, 
            Var "x") --> 
      if x<4 then 3 else x *)
-  | LetExp of id * exp * exp (* let expression *)
-  | FunExp of id * exp (* static function expression *)
+  (* | LetExp of id * exp * exp let expression *)
+  | MultiLetExp of (id * exp) list * exp
+  | FunExp of id list * exp (* static function expression *)
   | DFunExp of id * exp (* dynamic function expression *)
   | AppExp of exp * exp (* function application expression *)
   | LetRecExp of id * id * exp * exp (* recursive function expression *)
@@ -27,9 +34,8 @@ type exp =
 type program =
     Exp of exp
   | Decl of id * exp
-  | DeclList of program * program
+  | DeclList of (id * exp) list
   | ClosedDecl of id * exp
   | ClosedLetExp of id * exp * exp
   | ClosedDeclList of program list
-  | DeclListEnd of meta
   | RecDecl of id * id * exp
