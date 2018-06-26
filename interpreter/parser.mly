@@ -46,8 +46,7 @@ LETFUNPARAExpr :
 
 Expr :
     e=IfExpr { e } (* if expression *)
-  | e=LTExpr { e } (* arithmatic expression *)
-  | e=ORExpr { e } (* boolean expression *)
+  | e=ORExpr { e } (* arithmetic / boolean expression *)
   | e=LETExpr { e } (* let expression *)
   | e=LETRECExpr { e } (* recurisve let expression *)
   | e=FUNExpr { e } (* static function expression *)
@@ -79,6 +78,15 @@ MULTILETExpr :
   | x=ID EQ e=Expr { (x, e) } (* for simple declarations *)
   | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) } (* for function declarations using let *) */
 
+(* logical expressions *)
+ORExpr : (* or *)
+    l=ANDExpr OR r=ANDExpr { LogicOp (Or, l, r) }
+  | e=ANDExpr { e }
+
+ANDExpr : (* and *)
+    l=LTExpr AND r=ANDExpr { LogicOp (And, l, r) }
+  | e=LTExpr { e }
+
 (* arithmatic expressions *)
 LTExpr : (* less than expression *)
     l=PExpr LT r=PExpr { BinOp (Lt, l, r) }
@@ -90,17 +98,6 @@ PExpr : (* addition *)
  
 MExpr : (* multiplication *)
     l=MExpr MULT r=AppExpr { BinOp (Mult, l, r) }
-  | e=AppExpr { e }
-
-(* logical expressions *)
-ORExpr : (* or *)
-    /* l=ORExpr OR r=ANDExpr { LogicOp (Or, l, r) } */
-    l=ANDExpr OR r=ORExpr { LogicOp (Or, l, r) }
-  | e=ANDExpr { e }
-
-ANDExpr : (* and *)
-    /* l=ANDExpr AND r=AExpr { LogicOp (And, l, r) }  */
-    l=AExpr AND r=ANDExpr { LogicOp (And, l, r) }
   | e=AppExpr { e }
 
 AppExpr : (* function application *)

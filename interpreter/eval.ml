@@ -134,13 +134,6 @@ let rec eval_decl env = function
       dummyenv := newenv;
       (id, newenv, ProcV(para, e, dummyenv))
     )
-  (* | DeclList(lst) -> 
-     (let rec loop l c_env = 
-       match l with
-       | top :: [] -> eval_decl c_env top
-       | top :: rest -> let (_, new_env, _) = eval_decl c_env top in loop rest new_env
-       | [] -> err("failed")
-     in loop lst env ) *)
   | _ -> err("eval_decl failed")
 
 let eval_closed_decl eval_env append_env = function 
