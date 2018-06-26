@@ -14,3 +14,8 @@ interpreter/miniml
 interpreter/parser.automaton
 compiler/src/_build
 compiler/src/main
+*.sh
+*.txt
+*.asm
+*.s
+textbook/*.pdf
