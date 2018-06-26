@@ -1,3 +1,5 @@
+open MySet
+
 (* ML interpreter / type reconstruction *)
 type id = string
 
@@ -29,8 +31,35 @@ type program =
   | Decl of id * exp
   (* | RecDecl of id * id * exp *)
 
-type ty = TyInt | TyBool
+type tyvar = int
 
-let pp_ty = function
+type ty = 
+  | TyInt 
+  | TyBool
+  | TyVar of tyvar
+  | TyFun of ty * ty
+
+let rec pp_ty = function
   | TyInt -> print_string "int"
   | TyBool -> print_string "bool"
+  | TyVar id -> print_string ("tyvar: " ^ string_of_int id)
+  | TyFun(a, b)-> 
+    (pp_ty a;
+     print_string " -> ";
+     pp_ty b;)
+
+(* returns new type variables with fresh_tyvar() *)
+let fresh_tyvar =
+  let counter = ref 0 in
+  let body () =
+    let v = !counter in
+    counter := v + 1; v
+  in body
+
+(* 与えられた型中の型変数の集合を返す関数 *)
+let rec freevar_ty ty = 
+  match ty with
+  | TyVar a -> MySet.from_list (TyVar a :: [])
+  | TyFun(a, b) -> MySet.union (freevar_ty a) (freevar_ty b)
+  | _ -> MySet.empty
+

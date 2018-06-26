@@ -6,6 +6,7 @@ let err s = raise (Error s)
 
 (* type environment *)
 type tyenv = ty Environment.t
+type subst = (tyvar * ty) list
 
 let ty_prim op ty1 ty2 = match op with
   | Plus -> (match ty1, ty2 with
@@ -58,3 +59,16 @@ let ty_decl tyenv = function
   | Exp e -> ty_exp tyenv e
   (* TODO: Decl *)
   | _ -> err "not implemented"
+
+let rec subst_type s ty = 
+  let rec resolve_subst (subst_tyvar, subst_ty) ty = 
+    let subst_pair = (subst_tyvar, subst_ty) in
+    match ty with
+    | TyVar id -> if id = subst_tyvar then subst_ty else TyVar id
+    | TyFun(a, b) -> TyFun(resolve_subst subst_pair a, resolve_subst subst_pair b)
+    | TyInt -> TyInt
+    | TyBool -> TyBool 
+  in match s with 
+  | top :: rest -> 
+    subst_type rest (resolve_subst top ty)
+  | [] -> ty
