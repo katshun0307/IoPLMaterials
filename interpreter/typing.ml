@@ -72,3 +72,21 @@ let rec subst_type s ty =
   | top :: rest -> 
     subst_type rest (resolve_subst top ty)
   | [] -> ty
+
+let rec unify lst_to_unify  = 
+  let rec loop lst current_subst = 
+    (match lst with
+     | (x, y) :: rest -> 
+       if x = y then loop rest current_subst else
+         (match x, y with
+          | TyFun(a, b), TyFun(c, d) -> loop rest (loop [(a, c); (b, d)] current_subst)
+          | TyVar(id), b -> 
+            if MySet.member (TyVar id) (freevar_ty b) then (loop rest ((id, b) :: current_subst)) 
+            else err "could not resolve type"
+          | b, TyVar(id) -> 
+            if MySet.member (TyVar id) (freevar_ty b) then (loop rest ((id, b) :: current_subst)) 
+            else err "could not resolve type"
+          | _ -> err "could not resolve type"
+         )
+     | _ -> current_subst) in 
+  loop lst_to_unify []
