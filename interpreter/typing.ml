@@ -41,12 +41,20 @@ let rec ty_exp tyenv = function
        let tyarg3 = ty_exp tyenv exp3 in
        if tyarg2 = tyarg3 then tyarg2 else err("both types must be same: if")
      | _ -> err "condition must be boolean: if")
-  | LetExp (id, exp1, exp2) -> 
-    let tyexp1 = ty_exp tyenv exp1 in 
-    let evalenv = Environment.extend id tyexp1 tyenv in
-    ty_exp evalenv exp2
+  | MultiLetExp (params, exp) -> 
+    let rec extend_env_with_list current_tyenv p =
+      match p with
+      | (id, e) :: rest -> 
+        let tyexp = ty_exp current_tyenv e in 
+        let new_tyenv = Environment.extend id tyexp current_tyenv  in 
+        extend_env_with_list new_tyenv rest
+      | [] -> current_tyenv in
+    let tyevalenv = extend_env_with_list tyenv params in
+    ty_exp tyevalenv exp
+  (* TODO: FunExp *)
   | _ -> err "not implemented"
 
 let ty_decl tyenv = function
   | Exp e -> ty_exp tyenv e
+  (* TODO: Decl *)
   | _ -> err "not implemented"

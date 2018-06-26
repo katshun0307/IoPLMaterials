@@ -5,8 +5,8 @@ open Syntax
 %token LPAREN RPAREN SEMISEMI
 %token PLUS MULT LT AND OR
 %token IF THEN ELSE TRUE FALSE
-%token LET IN EQ
-%token RARROW FUN DFUN
+%token LET IN EQ LETAND
+%token RARROW FUN DFUN 
 
 %token <int> INTV
 %token <Syntax.id> ID
@@ -17,7 +17,16 @@ open Syntax
 
 toplevel :
     e=Expr SEMISEMI { Exp e }
-  | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) } 
+  | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) }
+  | LET f=ID b=LETFUNExpr { Decl(f, b) } (* declaration *)
+
+(* let function declarations *)
+LETFUNExpr :
+  | para=LETFUNPARAExpr e=Expr SEMISEMI { FunExp(para, e) }
+
+LETFUNPARAExpr :
+  | x=ID l=LETFUNPARAExpr { x :: l }
+  | x=ID EQ { x :: [] }
 
 Expr :
     e=IfExpr { e } (* if expression *)
@@ -33,8 +42,25 @@ IfExpr :
     IF c=Expr THEN t=Expr ELSE e=Expr { IfExp (c, t, e) }
 
 (* let expression *)
-LETExpr :
-    LET x=ID EQ e1=Expr IN e2=Expr { LetExp(x, e1, e2) }
+LETExpr : (* TODO: let f x y = x + y and y s t = s * t in in f 5 3 + y 5 7;; *)
+  | LET e1=MULTILETExpr IN e2=Expr { MultiLetExp(e1, e2) } (* simple value declarations *)
+
+/* LETRECExpr : 
+  | LET REC f=ID EQ FUN para=ID RARROW e1=Expr IN e2=Expr { LetRecExp(f, para, e1, e2) }
+  | LET REC f=ID para=ID EQ e1=Expr IN e2=Expr { LetRecExp(f, para, e1 ,e2) } */
+
+(* multiple declarations for let expression *)
+MULTILETExpr : 
+  /* | x=ID EQ e=Expr LETAND l=MULTILETExpr { (x, e) :: l } */
+  /* | x=ID EQ e=Expr { (x, e) :: [] } */
+  | x=ID EQ e=Expr LETAND l=MULTILETExpr { (x, e) :: l }
+  | f=ID params=LETFUNPARAExpr e=Expr LETAND l=MULTILETExpr { (f, FunExp(params, e)) :: l }
+  | x=ID EQ e=Expr { (x, e) :: [] }
+  | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) :: [] }
+
+/* LETEXPDECLExpr : (* <f x y x = x + y * z> / <x = 2> *)
+  | x=ID EQ e=Expr { (x, e) } (* for simple declarations *)
+  | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) } (* for function declarations using let *) */
 
 (* number expressions *)
 LTExpr : (* less than expression *)
@@ -55,12 +81,12 @@ AppExpr : (* function application *)
   | e=AExpr { e }
 
 (* static function expression *)
-FUNExpr : (* fun x1 ... -> expr *)
-    FUN b=FunBottomExpr { b }
+FUNExpr : (* store ids as list *)
+  FUN params=FUNPARAExpr e=Expr { FunExp(params, e) }
 
-FunBottomExpr : (* ....xn-1 xn -> expr *)
-    x=ID RARROW e=Expr { FunExp(x, e) }
-  | x=ID b=FunBottomExpr { FunExp (x, b) }
+FUNPARAExpr : 
+  | x=ID l=FUNPARAExpr { x :: l }
+  | x=ID RARROW { x :: [] }
 
 (* dynamic function expression *)
 DFUNExpr : (* dfun x1 ... -> expr *)
@@ -68,7 +94,7 @@ DFUNExpr : (* dfun x1 ... -> expr *)
 
 DFunBottomExpr : (* ....xn-1 xn -> expr *)
     x=ID RARROW e=Expr { DFunExp(x, e) }
-  | x=ID b=FunBottomExpr { DFunExp (x, b) }
+  | x=ID b=DFunBottomExpr { DFunExp (x, b) }
 
 (* logical expressions *)
 ORExpr : (* or *)
@@ -80,11 +106,11 @@ ANDExpr : (* and *)
   | e=AExpr { e }
 
 BinExpr : (* binary expression *)
-    LPAREN PLUS RPAREN { FunExp("a", FunExp("b", BinOp (Plus, Var "a", Var "b"))) }
-  |  LPAREN MULT RPAREN { FunExp("a", FunExp("b", BinOp (Mult, Var "a", Var "b"))) }
-  |  LPAREN LT RPAREN { FunExp("a", FunExp("b", BinOp (Lt, Var "a", Var "b"))) }
-  |  LPAREN AND RPAREN { FunExp("a", FunExp("b", BinOp (And, Var "a", Var "b"))) }
-  |  LPAREN OR RPAREN { FunExp("a", FunExp("b", BinOp (Or, Var "a", Var "b"))) }
+  |  LPAREN PLUS RPAREN { FunExp(["a" ; "b"], BinOp (Plus,  Var "a", Var "b")) }
+  |  LPAREN MULT RPAREN { FunExp(["a" ; "b"], BinOp (Mult,  Var "a", Var "b")) }
+  |  LPAREN LT RPAREN   { FunExp(["a" ; "b"], BinOp (Lt,    Var "a", Var "b")) }
+  |  LPAREN AND RPAREN  { FunExp(["a" ; "b"], LogicOp (And,  Var "a", Var "b")) }
+  |  LPAREN OR RPAREN   { FunExp(["a" ; "b"], LogicOp (Or,   Var "a", Var "b")) }
 
 (* most basic expressions *)
 AExpr : (* integer, boolean, variable(id), expression_with_parenthesis *)
