@@ -23,7 +23,7 @@ let err s = raise (Error s)
 let rec string_of_exval = function
     IntV i -> string_of_int i
   | BoolV b -> string_of_bool b
-  | ProcV _ -> "<fun>(recursive)"
+  | ProcV _ -> "<fun(recursive)>"
   | ListProcV _ -> "<fun>"
   | DProcV _ -> "<dfun>"
 

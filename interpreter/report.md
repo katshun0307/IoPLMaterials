@@ -72,16 +72,18 @@ LTExpr : (* less than expression *)
 
 OCamlの論理演算は,短絡評価をおこなうので,そのように実装した.
 
-```
+```ocaml
 let rec eval_exp env = function
   | LogicOp(op, e1, e2) -> 
     ( match op with 
       | And -> let arg1 = eval_exp env e1 in 
         if arg1 = BoolV(false) then BoolV(false) else 
-          let arg2 = eval_exp env e2 in if (arg2 = BoolV(true)) || (arg2 = BoolV(false)) then arg2 else err("non boolean values supplied: &&")
+          let arg2 = eval_exp env e2 in if (arg2 = BoolV(true)) || (arg2 = BoolV(false)) then arg2 
+          else err("non boolean values supplied: &&")
       | Or -> let arg1 = eval_exp env e1 in
         if arg1 = BoolV(true) then BoolV(true) else
-          let arg2 = eval_exp env e2 in if (arg2 = BoolV(true)) || (arg2 = BoolV(false)) then arg2 else err("non boolean values supplied: ||"))
+          let arg2 = eval_exp env e2 in if (arg2 = BoolV(true)) || (arg2 = BoolV(false)) then arg2 
+          else err("non boolean values supplied: ||"))
 ```
 
 # 3.2.4[**]
@@ -391,6 +393,17 @@ FUNPARAExpr :
   | x=ID RARROW { x :: [] }
 ```
 
+#### eval.ml
+
+関数閉包を作成するために,新しい環境へのrefを作成し,そこに現在の環境をは破壊的代入する.
+`ListProcV`は,関数への
+
+```ocaml
+let rec eval_exp env = function
+  | FunExp (params, exp) -> let dummyenv = ref Environment.empty in dummyenv := env;
+    ListProcV (params, exp, dummyenv) (* save reference to current environment "env" inside closure *)
+```
+
 ## fun宣言
 
 `parser.mly`が`let f x y z -> e`を`Decl(f, FunExp([x;y;z], e))`と解釈するように変更した.
@@ -413,6 +426,10 @@ LETFUNPARAExpr :
   | x=ID l=LETFUNPARAExpr { x :: l }
   | x=ID EQ { x :: [] }
 ```
+
+#### eval.ml
+
+上記のfun式の評価結果を,環境に加えるだけである.
 
 # 3.4.4[*]
 
@@ -500,7 +517,82 @@ val - = 120
 
 # 3.5.1[]
 
-failing (2)
+## 構文解析
+
+#### parser.mly
+
+再帰関数のlet式･宣言は,以下を受理するように定義した.
+
++ `let rec f = fun x -> e`
++ `let rec f x = e`
++ `let rec f = fun x -> e in f t`
++ `let rec f x = e in f t`
+
+それぞれ,解析結果は以下のようになる.
+
++ `RecDecl(f, x, e)`
++ `LetRecExp(f, x, e, AppExp(f t))`
+
+```ocaml
+toplevel :
+    e=Expr SEMISEMI { Exp e } (* expressions *)
+    ...
+  | LET REC f=ID EQ FUN para=ID RARROW e=Expr SEMISEMI { RecDecl(f, para, e) }
+  | LET REC f=ID para=ID EQ e=Expr SEMISEMI { RecDecl(f, para, e) } (* recursive declaration 2 *)
+  ...
+...
+LETRECExpr : 
+  | LET REC f=ID EQ FUN para=ID RARROW e1=Expr IN e2=Expr { LetRecExp(f, para, e1, e2) }
+  | LET REC f=ID para=ID EQ e1=Expr IN e2=Expr { LetRecExp(f, para, e1 ,e2) }
+```
+
+## 評価
+
+#### eval.ml
+
+再帰関数宣言の評価は,空の新しい環境へのrefを作成,現在の環境を破壊的代入し,
+そのrefを保持する.
+
+また,再帰関数への関数適用の際には,環境のrefが指す中身を適用する値で拡張し,そのもとで関数式を評価する.
+
+```ocaml
+type exval =
+  | IntV of int
+  | BoolV of bool
+  | ProcV of id * exp * dnval Environment.t ref
+  | ListProcV of id list * exp * dnval Environment.t ref
+  | DProcV of id * exp
+
+let rec eval_exp env = function
+    Var x -> 
+    (try Environment.lookup x env with 
+       Environment.Not_bound -> err ("Variable not bound: " ^ x))
+  ...
+  | LetRecExp (id, para, exp1, exp2) ->
+    let dummyenv = ref Environment.empty in
+    let newenv = Environment.extend id (ProcV(para, exp1, dummyenv)) env in
+    dummyenv := newenv;
+    eval_exp newenv exp2
+  ...
+  | AppExp (exp1, exp2) -> (
+      let funval = eval_exp env exp1 in
+      let arg = eval_exp env exp2 in 
+      (match funval with 
+       (* recurisive function *)
+       | ProcV(id, body, env_ref) -> let eval_env = Environment.extend id arg !env_ref in
+         eval_exp eval_env body
+        ...
+    ...
+let rec eval_decl env = function
+  ...
+  | RecDecl(id, para, e) -> (
+      let dummyenv = ref Environment.empty in 
+      let newenv = Environment.extend id (ProcV(para, e, dummyenv)) env in 
+      dummyenv := newenv;
+      (id, newenv, ProcV(para, e, dummyenv))
+    )
+  | _ -> err("eval_decl failed")
+```
 
 # 3.5.2[**]
 
