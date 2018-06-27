@@ -18,12 +18,11 @@ open Syntax
 toplevel :
     e=Expr SEMISEMI { Exp e } (* expressions *)
   | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) } (* declaration *)
-  (* TODO: ex) let x a b = a + b *)
   | LET f=ID b=LETFUNExpr { Decl(f, b) } (* declaration *)
   | LET REC f=ID EQ FUN para=ID RARROW e=Expr SEMISEMI { RecDecl(f, para, e) }
   | LET REC f=ID para=ID EQ e=Expr SEMISEMI { RecDecl(f, para, e) } (* recursive declaration 2 *)
-  | LET x=ID EQ e1=Expr l2=DECLLISTBOTTOMExpr { DeclList((x, e1):: l2) } (* 3.3.2: let x = 1 let y = 1;; OK *)
-  | LET x=ID EQ e1=Expr LETAND l2=CLOSEDDECLBOTTOMExpr { ClosedDeclList(ClosedDecl(x, e1):: l2) } (* 3.3.4: let x = 100 and y = x in x+y *)
+  | LET x=ID EQ e1=Expr l2=DECLLISTBOTTOMExpr { DeclList((x, e1):: l2) } 
+  | LET x=ID EQ e1=Expr LETAND l2=CLOSEDDECLBOTTOMExpr { ClosedDeclList(ClosedDecl(x, e1):: l2) } 
 
 (* continuous declarations *)
 DECLLISTBOTTOMExpr : 
@@ -32,7 +31,6 @@ DECLLISTBOTTOMExpr :
 
 (* closed declarations *)
 CLOSEDDECLBOTTOMExpr :
-  (* 3.3.4 (ex) let x = 1 and y = x;; *) 
   | x=ID EQ e1=Expr LETAND l2=CLOSEDDECLBOTTOMExpr { ClosedDecl(x, e1):: l2 }
   | x=ID EQ e1=Expr SEMISEMI { ClosedDecl(x, e1)::[] }
 
@@ -58,7 +56,7 @@ IfExpr :
   | IF c=Expr THEN t=Expr ELSE e=Expr { IfExp (c, t, e) }
 
 (* let expression *)
-LETExpr : (* TODO: let f x y = x + y and y s t = s * t in in f 5 3 + y 5 7;; *)
+LETExpr :
   | LET e1=MULTILETExpr IN e2=Expr { MultiLetExp(e1, e2) } (* simple value declarations *)
 
 LETRECExpr : 
@@ -67,16 +65,10 @@ LETRECExpr :
 
 (* multiple declarations for let expression *)
 MULTILETExpr : 
-  /* | x=ID EQ e=Expr LETAND l=MULTILETExpr { (x, e) :: l } */
-  /* | x=ID EQ e=Expr { (x, e) :: [] } */
   | x=ID EQ e=Expr LETAND l=MULTILETExpr { (x, e) :: l }
   | f=ID params=LETFUNPARAExpr e=Expr LETAND l=MULTILETExpr { (f, FunExp(params, e)) :: l }
   | x=ID EQ e=Expr { (x, e) :: [] }
   | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) :: [] }
-
-/* LETEXPDECLExpr : (* <f x y x = x + y * z> / <x = 2> *)
-  | x=ID EQ e=Expr { (x, e) } (* for simple declarations *)
-  | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) } (* for function declarations using let *) */
 
 (* logical expressions *)
 ORExpr : (* or *)
@@ -103,9 +95,6 @@ MExpr : (* multiplication *)
 AppExpr : (* function application *)
     e1=AppExpr e2=AExpr { AppExp(e1, e2) }
   | e1=AppExpr e2=BinExpr { AppExp(e1, e2) }
-  /* | e1=Expr e2=AExpr { AppExp(e1, e2) } */
-  /* | e1=Expr e2=BinExpr { AppExp(e1, e2) } */
-  /* | e1=AppExpr e2=Expr { AppExp(e1, e2) } */
   | e=BinExpr { e }
   | e=AExpr { e }
 
@@ -115,14 +104,6 @@ BinExpr : (* binary expression *)
   |  LPAREN LT RPAREN   { FunExp(["a" ; "b"], BinOp (Lt,    Var "a", Var "b")) }
   |  LPAREN AND RPAREN  { FunExp(["a" ; "b"], LogicOp (And,  Var "a", Var "b")) }
   |  LPAREN OR RPAREN   { FunExp(["a" ; "b"], LogicOp (Or,   Var "a", Var "b")) }
-
-(* static function expression *)
-/* FUNExpr : (* fun x1 ... -> expr *)
-    FUN b=FunBottomExpr { b } */
-
-/* FunBottomExpr : (* ....xn-1 xn -> expr *)
-    x=ID RARROW e=Expr { FunExp(x, e) }
-  | x=ID b=FunBottomExpr { FunExp (x, b) } */
 
 FUNExpr : (* store ids as list *)
   FUN params=FUNPARAExpr e=Expr { FunExp(params, e) }
