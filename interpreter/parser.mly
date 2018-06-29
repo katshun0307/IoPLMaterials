@@ -30,7 +30,6 @@ LETFUNPARAExpr :
 
 Expr :
     e=IfExpr { e } (* if expression *)
-  | e=LTExpr { e } (* less than *)
   | e=ORExpr { e } (* boolean expression *)  
   | e=LETExpr { e } (* let expression *)
   | e=FUNExpr { e } (* static function expression *)
@@ -61,6 +60,15 @@ MULTILETExpr :
 /* LETEXPDECLExpr : (* <f x y x = x + y * z> / <x = 2> *)
   | x=ID EQ e=Expr { (x, e) } (* for simple declarations *)
   | f=ID params=LETFUNPARAExpr e=Expr { (f, FunExp(params, e)) } (* for function declarations using let *) */
+
+(* logical expressions *)
+ORExpr : (* or *)
+    l=ANDExpr OR r=ANDExpr { LogicOp (Or, l, r) }
+  | e=ANDExpr { e }
+
+ANDExpr : (* and *)
+    l=LTExpr AND r=ANDExpr { LogicOp (And, l, r) }
+  | e=LTExpr { e }
 
 (* number expressions *)
 LTExpr : (* less than expression *)
@@ -95,15 +103,6 @@ DFUNExpr : (* dfun x1 ... -> expr *)
 DFunBottomExpr : (* ....xn-1 xn -> expr *)
     x=ID RARROW e=Expr { DFunExp(x, e) }
   | x=ID b=DFunBottomExpr { DFunExp (x, b) }
-
-(* logical expressions *)
-ORExpr : (* or *)
-    l=ANDExpr OR r=ANDExpr { BinOp (Or, l, r) }
-  | e=ANDExpr { e }
-
-ANDExpr : (* and *)
-    l=ANDExpr AND r=AExpr { BinOp (And, l, r) }
-  | e=AExpr { e }
 
 BinExpr : (* binary expression *)
   |  LPAREN PLUS RPAREN { FunExp(["a" ; "b"], BinOp (Plus,  Var "a", Var "b")) }
