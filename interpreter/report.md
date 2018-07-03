@@ -7,11 +7,32 @@
 
 # 3.2.1[]
 
-(略)
+## 変更
+
+初期環境を以下のように変更した.
+
+```ocaml
+let initial_env = 
+  Environment.extend "ii" (IntV 2)
+    (Environment.extend "iii" (IntV 3) 
+       (Environment.extend "iv" (IntV 4) 
+          (Environment.extend "uso" (BoolV false) Environment.empty)))
+```
+
+## 実行例
+
+```ocaml
+ii + iii * iv;; (* check if multiplication comes first *)
+val - = 14
+# ii;; (* check if variable is correctly added *)
+val - = 2
+# iii + iv;; (* check addition *)
+val - = 7
+```
 
 # 3.2.2[**]
 
-> このインタプリタは文法にあわない入力を与えたり，束縛されていな い変数を参照しようとすると，プログラムの実行が終了してしまう.このような入力を与えた場合，適宜メッセージを出力して，インタプリタプロンプトに戻るように改造せよ.
+> このインタプリタは文法にあわない入力を与えたり，束縛されていない変数を参照しようとすると，プログラムの実行が終了してしまう.このような入力を与えた場合，適宜メッセージを出力して，インタプリタプロンプトに戻るように改造せよ.
 
 関数`read_eval_print`内で,エラーが起きたときも,エラーを出力した後,再び`read_eval_print`を呼び出せば良い.
 
@@ -110,6 +131,17 @@ and comment i = parse
 # 3.3.1[]
 
 > ML2 インタプリタを作成し，テストせよ.
+
+```ocaml
+# let x = 100;; (* define variable *)
+val x = 100
+# x;; (* check if x is correctly defined *)
+val - = 100
+# let x = 3 in x + 2;; (* check let expression *)
+val - = 5
+# x;; (* check if variable is unchanged *)
+val - = 100
+```
 
 
 # 3.3.2[**]
@@ -345,11 +377,24 @@ let rec eval_exp env = function
 
 > ML3 インタプリタを作成し，高階関数が正しく動作するかなどを含めてテストせよ.
 
+以下のテストケースによって,関数のカリー化と高階関数,関数適用を確認した.
 
+```ocaml
+# let f x y = x + y;; (* define function *)
+val f = <fun>
+# let hoge = f 5;; (* check curried function *)
+val hoge = <fun>
+# hoge 3;; (* check curried function *)
+val - = 8
+# let apply f x y = f x y;; (* define high order function *)
+val apply = <fun>
+# apply f 1 4;; (* check high order function *)
+val - = 5
+```
 
 # 3.4.2[**]
 
-> OCaml での「(中置演算子) 」記法をサポートし，プリミティブ演算 を通常の関数と同様に扱えるようにせよ.
+> OCaml での「(中置演算子) 」記法をサポートし，プリミティブ演算を通常の関数と同様に扱えるようにせよ.
 
 中置プリミティブ演算のために, `parser.mly`に,以下のようなような表現を追加した.
 `BinExpr`における解析の結果は,それぞれ`fun a b -> a + b` などの構文解析結果である.
@@ -433,7 +478,7 @@ LETFUNPARAExpr :
 
 # 3.4.4[*]
 
-write program
+> 以下は，加算を繰り返して 4 による掛け算を実現している ML3 プログラムである.これを改造して，階乗を計算するプログラムを書け.
 
 ``` ocaml
 (* example *)
@@ -442,6 +487,8 @@ if x < 1 then 0 else 4 + maker maker (x + -1) in let times4 = fun x -> makemult 
 let makefact = fun maker -> fun x ->
 if x < 1 then 0 else maker maker (x + -1) in let fact4 = fun x -> makefact makefact x in fact4 3;;
 ```
+
+**未**
 
 # 3.4.5[*]
 
@@ -596,13 +643,24 @@ let rec eval_decl env = function
 
 # 3.5.2[**]
 
+**未**
+
 # 3.6.1[**]
+
+**未**
 
 # 3.6.2[*]
 
+**未**
+
 # 3.6.3[*]
+
+**未**
 
 # 3.6.4[***]
 
+**未**
+
 # 3.6.5[**]
 
+**未**

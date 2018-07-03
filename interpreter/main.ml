@@ -93,7 +93,7 @@ let rec read_eval_print env =
     read_eval_print env;;
 
 let initial_env = 
-  Environment.extend "hoge" (IntV 5)
+  Environment.extend "ii" (IntV 2)
     (Environment.extend "iii" (IntV 3) 
        (Environment.extend "iv" (IntV 4) 
           (Environment.extend "uso" (BoolV false) Environment.empty)))
