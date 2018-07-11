@@ -41,18 +41,9 @@ let eqls_of_subst subst =
 
 (* apply subst:(substitution) to eql:(list of equal types) *)
 let subst_eqs subst eql = 
-  List.map (fun (t1, t2) -> (subst_type subst t1, subst_type subst t2)) eql
+  List.map (fun (t1, t2) -> (subst_type [subst] t1, subst_type [subst] t2)) eql
 
-(* synthesize two lists of subst into one *)
-let rec compose_subst subst1 subst2 =
-  let subst_mid = List.map (fun (tx ,t) -> (tx, subst_type subst2 t)) subst1  
-  in List.fold_left 
-    (fun tau -> fun (tx, t) -> 
-       try 
-         (* let  _ = lookup tx subst1 in tau *)
-         let _ = List.find (fun (a, _) -> a = tx) subst1 in tau
-       with Not_found -> (tx, t) :: tau )
-    subst_mid subst2
+
 
 (* main unification algorithm *)
 let rec unify eqs: (tyvar * ty) list  = 
@@ -63,13 +54,14 @@ let rec unify eqs: (tyvar * ty) list  =
          (match x, y with
           | TyFun(a, b), TyFun(c, d) -> loop ((a, c) :: (b, d) :: rest) current_subst
           | TyVar(id), b -> 
-            if not (MySet.member (TyVar id) (freevar_ty b)) then 
-              loop (subst_eqs [(id, b)] rest) (compose_subst [(id, b)] current_subst)
-            else err "unify: could not resolve type"
+            let mid = unify(subst_eqs (id, b) rest) in
+            (id, b):: mid
           | b, TyVar(id) -> 
-            if not (MySet.member (TyVar id) (freevar_ty b)) then 
-              loop (subst_eqs [(id, b)] rest) (compose_subst [(id, b)] current_subst)
-            else err "unify: could not resolve type"
+            let mid = unify(subst_eqs (id, b) rest) in
+            (id, b) :: mid
+          (* if not (MySet.member (TyVar id) (freevar_ty b)) then 
+             loop (subst_eqs [(id, b)] rest) (compose_subst [(id, b)] current_subst)
+             else err "unify: could not resolve type" *)
           | _ -> err "unify: could not resolve type"
          )
      | _ -> current_subst) in 
