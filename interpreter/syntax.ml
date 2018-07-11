@@ -44,6 +44,7 @@ type ty =
   | TyFun of ty * ty;;
 
 let tyvar_string_of_int n =
+  (* 26 * block + offset *)
   let start_code = Char.code 'a' in
   let alphabet_of_int n = 
     (if n <= 26 then
@@ -52,7 +53,7 @@ let tyvar_string_of_int n =
   let offset = n mod 26 in
   let block = (n - offset) / 26 in
   if block = 0 then "'" ^ alphabet_of_int offset
-  else "'" ^ alphabet_of_int block ^ alphabet_of_int offset
+  else "'" ^ alphabet_of_int offset ^ string_of_int block
 
 (* decaprated *)
 let rec pp_ty = function
