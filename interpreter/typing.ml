@@ -135,28 +135,15 @@ let rec ty_exp tyenv = function
     let main_subst = unify (eqls_of_subst eval_subst @ eqls_of_subst exp_subst) in
     (subst_type main_subst exp_ty, main_subst)
   | FunExp(params, exp) -> 
-    let rec extend_envs_from_list current_env p = 
-      (match p with
-       | id :: rest -> 
-         let new_tyvar = TyVar (fresh_tyvar()) in 
-         let new_env = Environment.extend id new_tyvar current_env in
-         extend_envs_from_list new_env rest
-       | [] -> current_env ) in 
-    (* get environment with new tyvar for each params to evaluate the main function *)
-    let eval_tyenv = extend_envs_from_list tyenv params in
-    (* evaluate main function in the created environment *)
-    let res_ty, res_tysubst = ty_exp eval_tyenv exp in
-    (* make output ( re-evaluate args ) *)
-    let rec eval_type p e = 
-      (match p with
-       | top :: rest -> 
-         (try
-            let arg_tyvar = Environment.lookup top eval_tyenv in
-            let arg_ty =  subst_type res_tysubst arg_tyvar in
-            TyFun(arg_ty, eval_type rest e)
-          with _ -> err "error in fun exp")
-       | [] -> e) in
-    (eval_type params res_ty, res_tysubst)
+    (match params with
+     | top :: rest -> 
+       let ty_x = TyVar(fresh_tyvar()) in
+       (* add first arity to tyenv *)
+       let eval_tyenv = Environment.extend top ty_x tyenv in
+       let rest_ty, rest_subst = ty_exp eval_tyenv (FunExp(rest, exp)) in
+       let ty_x_ = subst_type rest_subst ty_x in
+       (TyFun(ty_x_, rest_ty), rest_subst)
+     |  [] -> ty_exp tyenv exp)
   | AppExp(exp1, exp2) ->
     let ty_exp1, tysubst1 = ty_exp tyenv exp1 in
     let ty_exp2, tysubst2 = ty_exp tyenv exp2 in
@@ -175,6 +162,6 @@ let rec ty_decl tyenv = function
     let (type_, cons) = ty_exp tyenv e in
     (type_, tyenv)
   | Decl(id, e) -> 
-    let e_ty, unified = ty_decl tyenv (Exp e) in
+    let e_ty, _ = ty_decl tyenv (Exp e) in
     let new_tyenv = Environment.extend id e_ty tyenv in
     (e_ty, new_tyenv)
