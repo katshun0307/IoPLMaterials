@@ -160,7 +160,7 @@ let rec ty_exp tyenv = function
 
 let rec ty_decl tyenv = function
   | Exp e -> 
-    let (type_, cons) = ty_exp tyenv e in
+    let (type_, _) = ty_exp tyenv e in
     (type_, tyenv)
   | Decl(id, e) -> 
     let e_ty, _ = ty_decl tyenv (Exp e) in
