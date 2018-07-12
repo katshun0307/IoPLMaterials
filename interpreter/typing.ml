@@ -11,7 +11,7 @@ type subst = (tyvar * ty) list
 
 (* printing *)
 let rec string_of_subst = function 
-  | (id, ty) :: rest -> "(" ^ string_of_int id ^ ", " ^ string_of_ty ty ^ ")" ^ string_of_subst rest
+  | (id, ty) :: rest -> "(" ^ string_of_ty (TyVar(id)) ^ ", " ^ string_of_ty ty ^ ")" ^ string_of_subst rest
   | [] -> ""
 
 let rec string_of_eqs = function 
@@ -43,8 +43,6 @@ let eqls_of_subst subst =
 let subst_eqs subst eql = 
   List.map (fun (t1, t2) -> (subst_type [subst] t1, subst_type [subst] t2)) eql
 
-
-
 (* main unification algorithm *)
 let rec unify eqs: (tyvar * ty) list  = 
   let rec loop lst current_subst = 
@@ -54,14 +52,15 @@ let rec unify eqs: (tyvar * ty) list  =
          (match x, y with
           | TyFun(a, b), TyFun(c, d) -> loop ((a, c) :: (b, d) :: rest) current_subst
           | TyVar(id), b -> 
-            let mid = unify(subst_eqs (id, b) rest) in
-            (id, b):: mid
+            if not (MySet.member id (freevar_ty b)) then
+              let mid = unify(subst_eqs (id, b) rest) in
+              (id, b):: mid
+            else err "unify: could not resolve type"
           | b, TyVar(id) -> 
-            let mid = unify(subst_eqs (id, b) rest) in
-            (id, b) :: mid
-          (* if not (MySet.member (TyVar id) (freevar_ty b)) then 
-             loop (subst_eqs [(id, b)] rest) (compose_subst [(id, b)] current_subst)
-             else err "unify: could not resolve type" *)
+            if not (MySet.member id (freevar_ty b)) then
+              let mid = unify(subst_eqs (id, b) rest) in
+              (id, b) :: mid
+            else err "unify: could not resolve type"
           | _ -> err "unify: could not resolve type"
          )
      | _ -> current_subst) in 
@@ -126,25 +125,35 @@ let rec ty_exp tyenv = function
     let exp_ty, exp_subst = ty_exp eval_tyenv exp in
     let main_subst = unify (eqls_of_subst eval_subst @ eqls_of_subst exp_subst) in
     (subst_type main_subst exp_ty, main_subst)
-  | FunExp(params, exp) -> 
-    (match params with
-     | top :: rest -> 
-       let ty_x = TyVar(fresh_tyvar()) in
-       (* add first arity to tyenv *)
-       let eval_tyenv = Environment.extend top ty_x tyenv in
-       let rest_ty, rest_subst = ty_exp eval_tyenv (FunExp(rest, exp)) in
-       let ty_x_ = subst_type rest_subst ty_x in
-       (TyFun(ty_x_, rest_ty), rest_subst)
-     |  [] -> ty_exp tyenv exp)
+  | FunExp(params, exp) ->
+    let rec extend_envs_from_list current_env p =
+      (match p with
+       | id :: rest ->
+         let new_tyvar = TyVar (fresh_tyvar()) in
+         let new_env = Environment.extend id new_tyvar current_env in
+         extend_envs_from_list new_env rest
+       | [] -> current_env ) in
+    (* get environment with new tyvar for each params to evaluate the main function *)
+    let eval_tyenv = extend_envs_from_list tyenv params in
+    (* evaluate main function in the created environment *)
+    let res_ty, res_tysubst = ty_exp eval_tyenv exp in
+    (* make output ( re-evaluate args ) *)
+    let rec eval_type p e =
+      (match p with
+       | top :: rest ->
+         (try
+            let arg_tyvar = Environment.lookup top eval_tyenv in
+            let arg_ty =  subst_type res_tysubst arg_tyvar in
+            TyFun(arg_ty, eval_type rest e)
+          with _ -> err "error in fun exp")
+       | [] -> e) in
+    (eval_type params res_ty, res_tysubst)
   | AppExp(exp1, exp2) ->
     let ty_exp1, tysubst1 = ty_exp tyenv exp1 in
     let ty_exp2, tysubst2 = ty_exp tyenv exp2 in
     (* make new var *)
     let ty_x = TyVar(fresh_tyvar()) in
-    (* eval type of ty_exp1 with tysubst2 *)
-    let ty_exp1_ = subst_type tysubst2 ty_exp1 in
-    (* unify (tyexp1_, t2 -> new_ty *)
-    let subst_main = unify([ty_exp1_, TyFun(ty_exp2, ty_x)] @ (eqls_of_subst tysubst1 @ eqls_of_subst tysubst2)) in
+    let subst_main = unify([ty_exp1, TyFun(ty_exp2, ty_x)] @ eqls_of_subst tysubst1 @ eqls_of_subst tysubst2) in
     let ty_3 = subst_type subst_main ty_x in
     (ty_3, subst_main)
   | _ -> err "ty_exp: not implemented"

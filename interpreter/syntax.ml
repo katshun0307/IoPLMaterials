@@ -85,8 +85,10 @@ let fresh_tyvar =
   in body
 
 (* 与えられた型中の型変数の集合を返す関数 *)
-let rec freevar_ty ty = 
-  match ty with
-  | TyVar a -> MySet.from_list (TyVar a :: [])
-  | TyFun(a, b) -> MySet.union (freevar_ty a) (freevar_ty b)
-  | _ -> MySet.empty
+let freevar_ty ty_in = 
+  let rec loop ty current = 
+    (match ty with
+     | TyVar a -> MySet.insert a current
+     | TyFun(a, b) -> MySet.union (loop a current) (loop b current)
+     | _ -> current) in
+  loop ty_in MySet.empty
