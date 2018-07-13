@@ -5,7 +5,7 @@ open Syntax
 %token LPAREN RPAREN SEMISEMI
 %token PLUS MULT LT AND OR
 %token IF THEN ELSE TRUE FALSE
-%token LET IN EQ LETAND
+%token LET IN EQ LETAND REC
 %token RARROW FUN DFUN 
 
 %token <int> INTV
@@ -19,6 +19,8 @@ toplevel :
     e=Expr SEMISEMI { Exp e }
   | LET x=ID EQ e=Expr SEMISEMI { Decl(x, e) }
   | LET f=ID b=LETFUNExpr { Decl(f, b) } (* declaration *)
+  | LET REC f=ID EQ FUN para=ID RARROW e=Expr SEMISEMI { RecDecl(f, para, e) } (* recursive declaration 1*)
+  | LET REC f=ID para=ID EQ e=Expr SEMISEMI { RecDecl(f, para, e) } (* recursive declaration 2 *)
 
 (* let function declarations *)
 LETFUNExpr :
@@ -44,9 +46,9 @@ IfExpr :
 LETExpr : (* TODO: let f x y = x + y and y s t = s * t in in f 5 3 + y 5 7;; *)
   | LET e1=MULTILETExpr IN e2=Expr { MultiLetExp(e1, e2) } (* simple value declarations *)
 
-/* LETRECExpr : 
+LETRECExpr : 
   | LET REC f=ID EQ FUN para=ID RARROW e1=Expr IN e2=Expr { LetRecExp(f, para, e1, e2) }
-  | LET REC f=ID para=ID EQ e1=Expr IN e2=Expr { LetRecExp(f, para, e1 ,e2) } */
+  | LET REC f=ID para=ID EQ e1=Expr IN e2=Expr { LetRecExp(f, para, e1 ,e2) }
 
 (* multiple declarations for let expression *)
 MULTILETExpr : 
