@@ -34,6 +34,7 @@ Expr :
     e=IfExpr { e } (* if expression *)
   | e=ORExpr { e } (* boolean expression *)  
   | e=LETExpr { e } (* let expression *)
+  | e=LETRECExpr { e } (* recursive let expression *)
   | e=FUNExpr { e } (* static function expression *)
   | e=DFUNExpr { e } (* dynamic function expression *)
   | e=BinExpr { e } (* binary expressions *) 
@@ -43,7 +44,7 @@ IfExpr :
     IF c=Expr THEN t=Expr ELSE e=Expr { IfExp (c, t, e) }
 
 (* let expression *)
-LETExpr : (* TODO: let f x y = x + y and y s t = s * t in in f 5 3 + y 5 7;; *)
+LETExpr :
   | LET e1=MULTILETExpr IN e2=Expr { MultiLetExp(e1, e2) } (* simple value declarations *)
 
 LETRECExpr : 

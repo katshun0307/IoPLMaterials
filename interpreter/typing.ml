@@ -156,6 +156,19 @@ let rec ty_exp tyenv = function
     let subst_main = unify([ty_exp1, TyFun(ty_exp2, ty_x)] @ eqls_of_subst tysubst1 @ eqls_of_subst tysubst2) in
     let ty_3 = subst_type subst_main ty_x in
     (ty_3, subst_main)
+  | LetRecExp(id, para, e1, e2) -> 
+    let ty_x = TyVar(fresh_tyvar()) in (* type of return value: f x *)
+    let ty_para = TyVar(fresh_tyvar()) in (* type of parameter: x *)
+    (* first formula *)
+    let eval_tyenv1 = Environment.extend id (TyFun(ty_para, ty_x)) (Environment.extend para ty_para tyenv) in
+    let e1_ty, e1_subst = ty_exp eval_tyenv1 e1 in
+    (* let first_subst = unify((ty_x, e1_ty) :: eqls_of_subst e1_subst) in *)
+    (* second formula *)
+    let eval_tyenv2 = Environment.extend id (TyFun(ty_para, ty_x)) tyenv in
+    let e2_ty, e2_subst = ty_exp eval_tyenv2 e2 in
+    (* unify all eqls *)
+    let main_subst = unify( (e1_ty, ty_x) ::eqls_of_subst e1_subst @ eqls_of_subst e2_subst) in
+    (subst_type main_subst e2_ty, main_subst)
   | _ -> err "ty_exp: not implemented"
 
 let rec ty_decl tyenv = function
@@ -166,3 +179,13 @@ let rec ty_decl tyenv = function
     let e_ty, _ = ty_decl tyenv (Exp e) in
     let new_tyenv = Environment.extend id e_ty tyenv in
     (e_ty, new_tyenv)
+  | RecDecl (id, para, e) -> 
+    let ty_x = TyVar(fresh_tyvar()) in (* type of return value: f x *)
+    let ty_para = TyVar(fresh_tyvar()) in (* type of parameter: x *)
+    let eval_tyenv = Environment.extend id (TyFun(ty_para, ty_x)) (Environment.extend para ty_para tyenv) in
+    let ty_main, e_subst = ty_exp eval_tyenv e in
+    let main_subst = unify( (ty_x, ty_main) :: eqls_of_subst e_subst) in
+    let ty_para2 = subst_type main_subst ty_para in
+    let main_ty = TyFun(ty_para2, ty_main) in
+    (main_ty, Environment.extend id main_ty tyenv)
+(* | _ -> err "not implemented" *)
