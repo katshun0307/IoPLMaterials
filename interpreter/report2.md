@@ -343,6 +343,59 @@ MultiLetExpは,`let x1 = e1 and x2 = e2 and ... in e`の式などの複数let宣
 2. 関数適用式全体の型を,新しい型`ty_x`で置く.
 3. (ty_exp1, TyFun(ty_exp2, ty_x))の型同値を1.で得られた型代入と単一化し,この型代入で`ty_x`を再評価する.
 
+# 4.3.6[**]
+
+> 推論アルゴリズムが let rec 式を扱えるように拡張せよ.
+
+型推論の定義式は,以下のように表される.
+
+$$
+\frac { \Gamma , f : \tau _ { 1 } \rightarrow \tau _ { 2 } , x : \tau_1 \vdash e_1 : \tau_2 ~~~~ \Gamma, f: \tau_1 \rightarrow  \tau_2 \vdash e_2 : \tau} { \Gamma \vdash \text { let rec } f = \text { fun } x \rightarrow e _ { 1 } \text { in } e _ { 2 } : \tau }
+$$
+
+これに従って,型推論を実装した.
+
+```ocaml
+let rec ty_exp tyenv = function
+  ...
+  | LetRecExp(id, para, e1, e2) -> 
+    let ty_x = TyVar(fresh_tyvar()) in (* type of return value: f x *)
+    let ty_para = TyVar(fresh_tyvar()) in (* type of parameter: x *)
+    (* first formula *)
+    let eval_tyenv1 = Environment.extend id (TyFun(ty_para, ty_x)) (Environment.extend para ty_para tyenv) in
+    let e1_ty, e1_subst = ty_exp eval_tyenv1 e1 in
+    (* second formula *)
+    let eval_tyenv2 = Environment.extend id (TyFun(ty_para, ty_x)) tyenv in
+    let e2_ty, e2_subst = ty_exp eval_tyenv2 e2 in
+    (* unify all eqls *)
+    let main_subst = unify( (e1_ty, ty_x) ::eqls_of_subst e1_subst @ eqls_of_subst e2_subst) in
+    (subst_type main_subst e2_ty, main_subst)
+    ...
+```
+
+具体的には,まず
+
+```ocaml
+let ty_x = TyVar(fresh_tyvar()) in (* type of return value: f x *)
+let ty_para = TyVar(fresh_tyvar()) in (* type of parameter: x *)
+...
+```
+
+で,$\tau_1, \tau_2$の型変数を新規に生成し,
+
+```ocaml
+    (* first formula *)
+    let eval_tyenv1 = Environment.extend id (TyFun(ty_para, ty_x)) (Environment.extend para ty_para tyenv) in
+    let e1_ty, e1_subst = ty_exp eval_tyenv1 e1 in
+    (* second formula *)
+    let eval_tyenv2 = Environment.extend id (TyFun(ty_para, ty_x)) tyenv in
+    let e2_ty, e2_subst = ty_exp eval_tyenv2 e2 in
+```
+
+で,型推論の定義式の前提側(上側)の2つの式の評価し,束縛を生成する.
+
+最後に,得られた束縛をunifyし,全体の型と型代入を返す.
+
 # 実験の感想
 
 ソフトウェア実験は,日頃仲良くしているプログラムが,どのように処理されて実行されているかを知る良い機会となった.
